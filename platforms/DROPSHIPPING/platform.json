@@ -1,0 +1,23 @@
+{
+  "name": "DROPSHIPPING",
+  "description": "Dropshipping automation with supplier sync",
+  "modules": {
+    "multi_vendor": false,
+    "multi_tenant": false,
+    "social": false,
+    "ai_engine": false,
+    "dropship": true
+  },
+  "features": [
+    "Everything in BASIC",
+    "Supplier management",
+    "Auto-sync inventory",
+    "Auto-sync pricing",
+    "Margin calculator",
+    "Auto-fulfillment",
+    "Supplier API integration",
+    "Order tracking"
+  ],
+  "target": "Dropshippers, arbitrage sellers",
+  "docker_tag": "dropshipping"
+}

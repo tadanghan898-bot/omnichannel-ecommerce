@@ -1,0 +1,23 @@
+{
+  "name": "BASIC_ECOMMERCE",
+  "description": "Basic e-commerce - cart, checkout, products",
+  "modules": {
+    "multi_vendor": false,
+    "multi_tenant": false,
+    "social": false,
+    "ai_engine": false,
+    "dropship": false
+  },
+  "features": [
+    "User authentication",
+    "Product catalog",
+    "Shopping cart",
+    "Checkout & orders",
+    "Admin dashboard",
+    "Reviews & ratings",
+    "Coupons & discounts",
+    "Multiple payment methods"
+  ],
+  "target": "Small businesses, personal stores",
+  "docker_tag": "basic-ecommerce"
+}

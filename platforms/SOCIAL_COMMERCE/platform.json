@@ -1,0 +1,23 @@
+{
+  "name": "SOCIAL_COMMERCE",
+  "description": "Social commerce with livestream shopping",
+  "modules": {
+    "multi_vendor": false,
+    "multi_tenant": false,
+    "social": true,
+    "ai_engine": false,
+    "dropship": false
+  },
+  "features": [
+    "Everything in BASIC",
+    "Social posts & feed",
+    "Livestream shopping",
+    "Influencer program",
+    "Commission for influencers",
+    "Follow & community",
+    "Social sharing",
+    "UGC content"
+  ],
+  "target": "Trendy brands, influencer-driven sales",
+  "docker_tag": "social-commerce"
+}

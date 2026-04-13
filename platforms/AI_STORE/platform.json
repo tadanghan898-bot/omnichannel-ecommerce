@@ -1,0 +1,29 @@
+{
+  "name": "AI_STORE",
+  "description": "AI-powered store with recommendations & chatbot",
+  "modules": {
+    "multi_vendor": false,
+    "multi_tenant": false,
+    "social": false,
+    "ai_engine": true,
+    "dropship": false
+  },
+  "features": [
+    "Everything in BASIC",
+    "AI chatbot support",
+    "Smart product recommendations",
+    "AI image generation for products",
+    "Semantic search",
+    "Personalized recommendations",
+    "Search analytics",
+    "LangChain-powered AI"
+  ],
+  "target": "Modern AI-forward businesses",
+  "docker_tag": "ai-store",
+  "ai_capabilities": [
+    "GPT-powered chatbot",
+    "Personalized recommendations",
+    "AI product image generation",
+    "Smart search"
+  ]
+}

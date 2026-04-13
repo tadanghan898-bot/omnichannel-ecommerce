@@ -1,0 +1,23 @@
+{
+  "name": "SAAS_PLATFORM",
+  "description": "SaaS multi-tenant white-label platform",
+  "modules": {
+    "multi_vendor": false,
+    "multi_tenant": true,
+    "social": false,
+    "ai_engine": false,
+    "dropship": false
+  },
+  "features": [
+    "Everything in BASIC",
+    "Multi-tenant architecture",
+    "Subscription plans (free/starter/pro/enterprise)",
+    "White-label branding per tenant",
+    "Custom domain support",
+    "Tenant management dashboard",
+    "Usage limits & billing",
+    "Stripe subscription billing"
+  ],
+  "target": "SaaS resellers, agencies, white-label platforms",
+  "docker_tag": "saas-platform"
+}

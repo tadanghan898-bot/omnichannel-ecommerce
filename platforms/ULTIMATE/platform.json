@@ -1,0 +1,24 @@
+{
+  "name": "ULTIMATE",
+  "description": "All features enabled - the ultimate all-in-one platform",
+  "modules": {
+    "multi_vendor": true,
+    "multi_tenant": true,
+    "social": true,
+    "ai_engine": true,
+    "dropship": true
+  },
+  "features": [
+    "ALL features from all platforms",
+    "Multi-vendor marketplace",
+    "SaaS multi-tenant",
+    "Social commerce + livestream",
+    "AI-powered recommendations & chatbot",
+    "Dropshipping automation",
+    "Enterprise-ready",
+    "Modular - enable/disable any feature"
+  ],
+  "target": "Enterprise, full-service e-commerce businesses",
+  "docker_tag": "ultimate-ecommerce",
+  "notes": "This is the full-fat version. Use PLATFORM_MODE=ULTIMATE to enable all modules."
+}

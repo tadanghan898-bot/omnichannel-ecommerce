@@ -1,0 +1,51 @@
+# ULTIMATE E-COMMERCE PLATFORM - Backend Dependencies
+# ====================================================
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Database
+sqlalchemy>=2.0.25
+alembic>=1.13.0
+aiosqlite>=0.19.0
+
+# Auth & Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.1.0
+
+# Validation & Config
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+email-validator>=2.1.0
+
+# HTTP Client
+httpx>=0.26.0
+requests>=2.31.0
+
+# Payments
+stripe>=7.10.0
+
+# AI / LangChain
+langchain>=0.1.0
+langchain-community>=0.0.20
+langchain-openai>=0.0.5
+
+# Utilities
+python-dotenv>=1.0.0
+python-dateutil>=2.8.0
+uuid6>=2024.1.12
+
+# Image Processing
+Pillow>=10.2.0
+
+# Caching
+cachetools>=5.3.0
+
+# Rate Limiting
+slowapi>=0.1.9
+
+# CORS
+# (handled by fastapi cors middleware)

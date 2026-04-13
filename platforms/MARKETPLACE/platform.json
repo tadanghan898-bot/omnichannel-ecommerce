@@ -1,0 +1,23 @@
+{
+  "name": "MARKETPLACE",
+  "description": "Multi-vendor marketplace with seller dashboard",
+  "modules": {
+    "multi_vendor": true,
+    "multi_tenant": false,
+    "social": false,
+    "ai_engine": false,
+    "dropship": false
+  },
+  "features": [
+    "Everything in BASIC",
+    "Multi-vendor support",
+    "Vendor dashboard",
+    "Commission system",
+    "Payout management",
+    "Seller reviews & ratings",
+    "Vendor verification",
+    "Store pages"
+  ],
+  "target": "Multi-seller platforms like Etsy, Tiki sellers",
+  "docker_tag": "marketplace"
+}
