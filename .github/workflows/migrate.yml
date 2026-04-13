@@ -11,15 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Link project
+      - name: Setup Supabase CLI v2
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          curl -fsSL https://github.com/supabase/cli/releases/download/v1.206.3/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
+          curl -fsSL https://github.com/supabase/cli/releases/download/v2.84.2/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
           tar -xzf /tmp/supabase.tar.gz -C /usr/local/bin
           supabase --version
           echo "$SUPABASE_ACCESS_TOKEN" | supabase login --token stdin
-          supabase projects link jogjbuoucnbzuoatgwgd
+          supabase link --project-ref jogjbuoucnbzuoatgwgd --password "${{ secrets.SUPABASE_DB_PASSWORD }}" --yes
 
       - name: Apply migrations
-        run: supabase db push --project-ref jogjbuoucnbzuoatgwgd --yes
+        run: supabase db push --linked --yes
