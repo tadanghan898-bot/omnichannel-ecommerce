@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Run Supabase migrations via Management API
-Smart parsing: split on semicolons while handling multi-line statements
+Splits SQL by semicolons, sends each as separate API call
 """
 import subprocess, json, os, sys, re
 
@@ -10,67 +10,55 @@ PROJECT = "peznevsvvmtdhafursvd"
 
 def sql(q):
     """Execute SQL via Management API. Returns (success, response)."""
-    payload = json.dumps({"query": q}).encode()
+    payload = json.dumps({"query": q})
     r = subprocess.run([
         "curl", "-s", "-X", "POST",
         f"https://api.supabase.com/v1/projects/{PROJECT}/database/query",
         "-H", f"Authorization: Bearer {TOKEN}",
         "-H", "Content-Type: application/json",
         "-H", f"apikey: {TOKEN}",
-        "--data-binary", "@-"
-    ], input=payload, capture_output=True, text=True, timeout=30)
+        "-d", payload
+    ], capture_output=True, text=True, timeout=30)
     return r.returncode == 0, r.stdout
 
-def parse_statements(content):
-    """Split SQL content into statements, handling multi-line correctly."""
-    # Remove SQL comments
-    lines = []
-    for line in content.split("\n"):
-        stripped = line.strip()
-        if stripped.startswith("--"):
-            continue
-        lines.append(line)
-    content = "\n".join(lines)
-
-    # Split on semicolons, tracking $$ dollar-quoting
+def split_sql(content):
+    """Split SQL by semicolons, handling newlines and dollar-quoting."""
     statements = []
+    # Strip comments first
+    lines = [re.sub(r'--.*$', '', line) for line in content.split('\n')]
+    content = '\n'.join(lines)
+
+    # Simple split by semicolon, handle $$ quoting
     current = []
-    in_dollar = False
-    dollar_char = None
+    depth = 0
     i = 0
     while i < len(content):
-        c = content[i]
-        if not in_dollar and c == '$':
-            # Check for dollar quote start/end
-            j = i + 1
-            while j < len(content) and content[j] == '$':
-                j += 1
-            tag = content[i:j]
-            if not current and tag:  # Start of $$...$$
-                in_dollar = True
-                dollar_char = tag
-                current.append(content[i:j])
-                i = j
+        # Check for $$ quoting
+        if i + 1 < len(content) and content[i] == '$' and content[i + 1] == '$':
+            if depth == 0:
+                depth = 1
+                current.append('$$')
+                i += 2
                 continue
-            elif in_dollar and current and "".join(current).count(dollar_char) % 2 == 1:
-                # Check if this closes the dollar quote
-                prev_content = "".join(current)
-                # Count occurrences of dollar_char in current buffer
-                if prev_content.count(dollar_char) % 2 == 1:
-                    current.append(content[i:j])
-                    i = j
-                    in_dollar = False
-                    dollar_char = None
-                    continue
-        elif not in_dollar and c == ';':
-            stmt = "".join(current).strip()
-            if stmt:
-                statements.append(stmt)
-            current = []
-            i += 1
-            continue
-        current.append(c)
+            elif depth == 1:
+                depth = 0
+                current.append('$$')
+                i += 2
+                continue
+        elif content[i] == ';':
+            if depth == 0:
+                stmt = ''.join(current).strip()
+                if stmt:
+                    statements.append(stmt)
+                current = []
+                i += 1
+                continue
+        current.append(content[i])
         i += 1
+
+    stmt = ''.join(current).strip()
+    if stmt:
+        statements.append(stmt)
     return statements
 
 def main():
@@ -84,7 +72,7 @@ def main():
         content = f.read()
 
     content = content.replace("jogjbuoucnbzuoatgwgd", PROJECT)
-    stmts = parse_statements(content)
+    stmts = split_sql(content)
     print(f"  Parsed {len(stmts)} statements")
     ok = fail = 0
     for stmt in stmts:
@@ -94,7 +82,7 @@ def main():
         else:
             fail += 1
             if fail <= 3:
-                print(f"  FAIL: {stmt[:60]}... -> {resp[:100]}")
+                print(f"  WARN: {stmt[:60]}... -> {resp[:100]}")
     print(f"  Schema: {ok} ok, {fail} failed")
 
     # Migration 002
@@ -102,7 +90,7 @@ def main():
     with open("supabase/migrations/002_seed_data.sql") as f:
         content = f.read()
 
-    stmts = parse_statements(content)
+    stmts = split_sql(content)
     print(f"  Parsed {len(stmts)} statements")
     ok = fail = 0
     for stmt in stmts:
@@ -111,8 +99,6 @@ def main():
             ok += 1
         else:
             fail += 1
-            if fail <= 3:
-                print(f"  FAIL: {stmt[:60]}... -> {resp[:100]}")
     print(f"  Seed: {ok} ok, {fail} failed")
 
     # Verify
