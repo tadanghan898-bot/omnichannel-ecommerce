@@ -16,46 +16,10 @@ jobs:
         with:
           version: 1.206.3
 
-      - name: Initialize local config
-        run: |
-          supabase init
-
-      - name: Apply migration via Supabase CLI
+      - name: Link project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          # Link to the Supabase project
-          echo "$SUPABASE_ACCESS_TOKEN" | supabase login --token stdin
-          supabase projects link jogjbuoucnbzuoatgwgd
-          # Push migrations
-          supabase db push --project-ref jogjbuoucnbzuoatgwgd --yes || true
+        run: echo "$SUPABASE_ACCESS_TOKEN" | supabase login --token stdin && supabase projects link jogjbuoucnbzuoatgwgd
 
-      - name: Apply seed data
-        env:
-          SUPABASE_DB_PASSWORD: ${{ vars.SUPABASE_DB_PASSWORD }}
-        run: |
-          pip install psycopg2-binary -q
-          python3 << 'PYEOF'
-import psycopg2, os, urllib.parse
-db_pass = os.environ.get('SUPABASE_DB_PASSWORD', '')
-encoded = urllib.parse.quote(db_pass, safe='')
-url = f"postgresql://postgres:{encoded}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres?sslmode=require"
-try:
-    conn = psycopg2.connect(url)
-    cur = conn.cursor()
-    with open('supabase/migrations/002_seed_data.sql', 'r') as f:
-        for stmt in [s.strip() for s in f.read().split(';') if s.strip()]:
-            if stmt.startswith('INSERT'):
-                try:
-                    cur.execute(stmt)
-                except Exception as e:
-                    if 'duplicate' not in str(e).lower():
-                        print(f'WARN: {str(e)[:80]}')
-    conn.commit()
-    print('Seed data applied!')
-    cur.close()
-    conn.close()
-except Exception as e:
-    print(f'DB connection failed (expected in CI): {e}')
-    print('Seed data will be skipped - run manually in Supabase SQL Editor if needed')
-PYEOF
+      - name: Apply migrations
+        run: supabase db push --project-ref jogjbuoucnbzuoatgwgd --yes
