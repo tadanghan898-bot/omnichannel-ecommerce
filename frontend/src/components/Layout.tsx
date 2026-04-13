@@ -72,6 +72,8 @@ export default function Layout() {
                     <Link to="/orders" className="block px-4 py-2 hover:bg-gray-50">Đơn hàng</Link>
                     {user?.role === 'vendor' && <Link to="/vendor" className="block px-4 py-2 hover:bg-gray-50">Kho hàng</Link>}
                     {user?.role === 'admin' && <Link to="/admin" className="block px-4 py-2 hover:bg-gray-50">Admin</Link>}
+                    {user?.role === 'admin' && <Link to="/order-hub" className="block px-4 py-2 hover:bg-gray-50">Order Hub</Link>}
+                    {user?.role === 'admin' && <Link to="/marketplace" className="block px-4 py-2 hover:bg-gray-50">Marketplace</Link>}
                     <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-500">Đăng xuất</button>
                   </div>
                 </div>

@@ -12,6 +12,8 @@ import AccountPage from './pages/AccountPage'
 import OrdersPage from './pages/OrdersPage'
 import AdminPage from './pages/AdminPage'
 import VendorPage from './pages/VendorPage'
+import OrderHubPage from './pages/OmniChannel/OrderHubPage'
+import MarketplacePage from './pages/OmniChannel/MarketplacePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuthStore()
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
           <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="vendor" element={<VendorRoute><VendorPage /></VendorRoute>} />
+          <Route path="order-hub" element={<AdminRoute><OrderHubPage /></AdminRoute>} />
+          <Route path="marketplace" element={<AdminRoute><MarketplacePage /></AdminRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>
