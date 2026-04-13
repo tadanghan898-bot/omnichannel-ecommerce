@@ -23,24 +23,28 @@ def main():
         print("ERROR: SUPABASE_ACCESS_TOKEN not set")
         sys.exit(1)
 
-    # Migration 001
+    # Migration 001 - send entire file as one query
     print("[1/2] Applying schema...")
     with open("supabase/migrations/001_init_schema.sql") as f:
         content = f.read()
 
-    ok = fail = 0
-    for stmt in content.split(";"):
-        s = stmt.strip()
-        if not s or s.startswith("--"):
-            continue
-        if sql(s):
-            ok += 1
-        else:
-            fail += 1
-        if (ok + fail) % 20 == 0:
-            print(f"  Progress: {ok} ok, {fail} fail")
+    # Replace old project ref if present
+    content = content.replace("jogjbuoucnbzuoatgwgd", PROJECT)
 
-    print(f"  Schema: {ok} ok, {fail} failed")
+    if sql(content):
+        print("  Schema: OK (single query)")
+    else:
+        print("  Schema: FAILED - trying statement by statement...")
+        ok = fail = 0
+        for stmt in content.split(";"):
+            s = stmt.strip()
+            if not s or s.startswith("--"):
+                continue
+            if sql(s):
+                ok += 1
+            else:
+                fail += 1
+        print(f"  Schema: {ok} ok, {fail} failed")
 
     # Migration 002
     print("[2/2] Applying seed...")
