@@ -11,51 +11,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Apply migrations via Management API
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Setup Supabase CLI v2
         run: |
-          PROJECT_REF="peznevsvvmtdhafursvd"
-          TOKEN="$SUPABASE_ACCESS_TOKEN"
+          curl -fsSL https://github.com/supabase/cli/releases/download/v2.84.2/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
+          tar -xzf /tmp/supabase.tar.gz -C /usr/local/bin
+          supabase --version
 
-          migrate_sql() {
-            curl -s -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
-              -H "Authorization: Bearer ${TOKEN}" \
-              -H "Content-Type: application/json" \
-              -H "apikey: ${TOKEN}" \
-              -d "{\"query\":\"$1\"}" > /dev/null 2>&1
-          }
-
-          # Run 001_init_schema.sql
-          echo "Applying schema migration..."
-          ok=0 fail=0
-          while IFS= read -r stmt; do
-            stmt=$(echo "$stmt" | sed 's/[[:space:]]\+/ /g' | xargs)
-            [[ -z "$stmt" || "$stmt" == --* ]] && continue
-            if migrate_sql "$stmt"; then
-              ok=$((ok+1))
-            else
-              # Retry on error (some statements need special handling)
-              migrate_sql "$stmt" 2>/dev/null && ok=$((ok+1)) || fail=$((fail+1))
-            fi
-            [[ $((ok+fail)) % 20 -eq 0 ]] && echo "  Progress: $ok executed"
-          done < <(sed 's/;[[:space:]]*/;\n/g' supabase/migrations/001_init_schema.sql)
-          echo "Schema: $ok OK, $fail failed"
-
-          # Run 002_seed_data.sql
-          echo "Applying seed data..."
-          ok=0 fail=0
-          while IFS= read -r stmt; do
-            stmt=$(echo "$stmt" | sed 's/[[:space:]]\+/ /g' | xargs)
-            [[ -z "$stmt" || "$stmt" == --* ]] && continue
-            migrate_sql "$stmt" 2>/dev/null && ok=$((ok+1)) || fail=$((fail+1))
-          done < <(sed 's/;[[:space:]]*/;\n/g' supabase/migrations/002_seed_data.sql)
-          echo "Seed: $ok OK, $fail failed"
-
-          # Verify
-          echo "Verifying tables..."
-          curl -s -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            -H "apikey: ${TOKEN}" \
-            -d '{"query":"SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = '\''public'\''"}'
+      - name: Apply migrations via direct DB connection
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          python3 -c "
+import urllib.parse
+pwd = '${{ secrets.SUPABASE_DB_PASSWORD }}'
+encoded = urllib.parse.quote(pwd, safe='')
+db_url = f'postgresql://postgres:{encoded}@db.peznevsvvmtdhafursvd.supabase.co:5432/postgres'
+with open('/tmp/db_url.txt', 'w') as f:
+    f.write(db_url)
+print('DB URL ready')
+"
+          supabase db push --db-url "$(cat /tmp/db_url.txt)" --project-ref peznevsvvmtdhafursvd --yes
