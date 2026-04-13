@@ -8,4 +8,8 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Hello"
+      - uses: actions/checkout@v4
+      - name: Run migration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python3 run_migration.py
