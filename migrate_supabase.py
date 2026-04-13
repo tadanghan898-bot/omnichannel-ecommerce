@@ -25,7 +25,8 @@ def run_migration():
     import urllib.parse
     if not DATABASE_URL and DB_PASS:
         encoded_pass = urllib.parse.quote(DB_PASS, safe='')
-        DATABASE_URL = f"postgresql://postgres:{encoded_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
+        # Try session pooler (port 6543) first for better connectivity
+        DATABASE_URL = f"postgresql://postgres:{encoded_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:6543/postgres?sslmode=require"
 
     if not DATABASE_URL:
         print("ERROR: SUPABASE_DATABASE_URL or DB_PASS environment variable not set")
