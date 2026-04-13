@@ -20,8 +20,6 @@
       "dest": "frontend/dist/$1"
     }
   ],
-  "projectId": "prj_0taouqQPVlf1RC2qSTeD00XQn3zk",
-  "orgId": "team_OBQmq8z1G8PnRj5VyuW0bGF7",
   "regions": ["sin1"],
   "env": {
     "ENV": "production"
