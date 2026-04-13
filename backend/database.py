@@ -46,7 +46,9 @@ _database_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
 if not _database_url or _database_url == settings.DATABASE_URL:
     _db_pass = os.getenv("SUPABASE_DB_PASSWORD", "") or os.getenv("DB_PASS", "")
     if _db_pass:
-        _database_url = f"postgresql://postgres:{_db_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
+        import urllib.parse
+        _encoded = urllib.parse.quote(_db_pass, safe='')
+        _database_url = f"postgresql://postgres:{_encoded}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
 
 # Engine configuration
 if _database_url.startswith("sqlite"):

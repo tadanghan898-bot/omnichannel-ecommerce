@@ -21,8 +21,11 @@ def run_migration():
     global DATABASE_URL
 
     # Support DB_PASS env var (GitHub Actions)
+    # URL-encode password to handle special characters like @, :, /
+    import urllib.parse
     if not DATABASE_URL and DB_PASS:
-        DATABASE_URL = f"postgresql://postgres:{DB_PASS}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
+        encoded_pass = urllib.parse.quote(DB_PASS, safe='')
+        DATABASE_URL = f"postgresql://postgres:{encoded_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
 
     if not DATABASE_URL:
         print("ERROR: SUPABASE_DATABASE_URL or DB_PASS environment variable not set")

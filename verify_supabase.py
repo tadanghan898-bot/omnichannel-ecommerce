@@ -1,8 +1,9 @@
 """Verify Supabase migration - count tables"""
-import psycopg2, os
+import psycopg2, os, urllib.parse
 
 db_pass = os.environ.get("DB_PASS", "")
-url = f"postgresql://postgres:{db_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
+encoded_pass = urllib.parse.quote(db_pass, safe='')
+url = f"postgresql://postgres:{encoded_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
 
 conn = psycopg2.connect(url)
 cur = conn.cursor()
