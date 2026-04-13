@@ -25,7 +25,13 @@ def run_migration():
     import urllib.parse
     if not DATABASE_URL and DB_PASS:
         encoded_pass = urllib.parse.quote(DB_PASS, safe='')
-        # Try session pooler (port 6543) first for better connectivity
+        # Force IPv4 to avoid GitHub Actions IPv6 routing issues with Supabase
+        import socket
+        old_getaddrinfo = socket.getaddrinfo
+        def ipv4_getaddrinfo(*args):
+            results = old_getaddrinfo(*args)
+            return [(af, *rest) for af, *rest in results if af == socket.AF_INET]
+        socket.getaddrinfo = ipv4_getaddrinfo
         DATABASE_URL = f"postgresql://postgres:{encoded_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:6543/postgres?sslmode=require"
 
     if not DATABASE_URL:
