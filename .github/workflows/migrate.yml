@@ -1,12 +1,10 @@
-name: Run Supabase Migration
+name: Supabase Migration
 
 on:
-  workflow_dispatch:
-    inputs:
-      db_password:
-        description: 'Database password'
-        required: true
-        type: password
+  push:
+    branches: [main]
+  repository_dispatch:
+    types: [supabase-migrate]
 
 jobs:
   migrate:
@@ -23,66 +21,69 @@ jobs:
       - name: Install psycopg2
         run: pip install psycopg2-binary
 
-      - name: Run migration
+      - name: Apply Supabase schema
         env:
-          SUPABASE_DATABASE_URL: postgresql://postgres:${{ inputs.db_password }}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres
+          SUPABASE_DB_PASSWORD: ${{ vars.SUPABASE_DB_PASSWORD }}
         run: |
           python3 << 'EOF'
 import psycopg2, os
 
-conn = psycopg2.connect(os.environ['SUPABASE_DATABASE_URL'])
+DB_PASS = os.environ.get('SUPABASE_DB_PASSWORD', '')
+URL = f'postgresql://postgres:{DB_PASS}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres'
+
+conn = psycopg2.connect(URL)
 conn.autocommit = True
 cur = conn.cursor()
 
-# Apply schema
 with open('supabase/migrations/001_init_schema.sql', 'r', encoding='utf-8') as f:
     sql = f.read()
 
-statements = [s.strip() for s in sql.split(';') if s.strip()]
 ok = fail = 0
-for stmt in statements:
-    if stmt.startswith('CREATE') or stmt.startswith('ALTER') or stmt.startswith('INSERT'):
+for stmt in [s.strip() for s in sql.split(';') if s.strip()]:
+    if stmt.startswith('CREATE') or stmt.startswith('ALTER') or stmt.startswith('INSERT') or 'TRIGGER' in stmt:
         try:
             cur.execute(stmt)
             ok += 1
         except Exception as e:
-            msg = str(e).lower()
-            if 'already exists' not in msg and 'duplicate' not in msg:
-                print(f'WARN: {stmt[:50]}... {e}')
+            if 'already exists' not in str(e).lower() and 'duplicate' not in str(e).lower():
+                print(f'WARN: {str(e)[:100]}')
                 fail += 1
 
-print(f'Schema: {ok} succeeded, {fail} warnings')
+print(f'Schema: {ok} OK, {fail} warnings')
 
-# Seed data
 with open('supabase/migrations/002_seed_data.sql', 'r', encoding='utf-8') as f:
-    seed = f.read()
+    for stmt in [s.strip() for s in f.read().split(';') if s.strip()]:
+        if stmt.startswith('INSERT'):
+            try:
+                cur.execute(stmt)
+            except Exception as e:
+                if 'duplicate' not in str(e).lower():
+                    print(f'Seed WARN: {str(e)[:100]}')
 
-for stmt in [s.strip() for s in seed.split(';') if s.strip()]:
-    if stmt.startswith('INSERT'):
-        try:
-            cur.execute(stmt)
-        except Exception as e:
-            if 'duplicate' not in str(e).lower():
-                print(f'Seed WARN: {e}')
-
-print('Migration complete!')
+print('Seed: applied')
 cur.close()
 conn.close()
+print('SUPABASE MIGRATION SUCCESS')
 EOF
 
       - name: Verify tables
         env:
-          SUPABASE_DATABASE_URL: postgresql://postgres:${{ inputs.db_password }}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres
+          SUPABASE_DB_PASSWORD: ${{ vars.SUPABASE_DB_PASSWORD }}
         run: |
           python3 -c "
 import psycopg2, os
-conn = psycopg2.connect(os.environ['SUPABASE_DATABASE_URL'])
+DB_PASS = os.environ.get('SUPABASE_DB_PASSWORD', '')
+URL = f'postgresql://postgres:{DB_PASS}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres'
+conn = psycopg2.connect(URL)
 cur = conn.cursor()
 cur.execute(\"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'\")
-print(f'Tables in database: {cur.fetchone()[0]}')
-cur.execute('SELECT table_name FROM information_schema.tables WHERE table_schema = public ORDER BY table_name')
-for row in cur.fetchall():
-    print(f'  - {row[0]}')
+count = cur.fetchone()[0]
+print(f'Tables created: {count}')
+if count > 0:
+    print('\\nTables:')
+    cur.execute('SELECT table_name FROM information_schema.tables WHERE table_schema = public ORDER BY table_name')
+    for row in cur.fetchall():
+        print(f'  - {row[0]}')
 cur.close()
 conn.close()
 "
