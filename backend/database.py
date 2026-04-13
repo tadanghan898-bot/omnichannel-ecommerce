@@ -51,6 +51,15 @@ if _database_url.startswith("sqlite"):
         poolclass=StaticPool,
         echo=False,
     )
+elif "supabase" in _database_url.lower():
+    # Supabase PostgreSQL with SSL
+    engine = create_engine(
+        _database_url,
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        connect_args={"sslmode": "require"},
+    )
 else:
     engine = create_engine(
         _database_url,

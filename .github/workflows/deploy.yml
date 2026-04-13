@@ -1,0 +1,216 @@
+name: Deploy to Vercel + Supabase
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================================
+  # LINT & TYPE CHECK
+  # ============================================================
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install ruff black mypy
+
+      - name: Run ruff
+        run: |
+          ruff check backend/ --ignore E501,F401
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend deps
+        run: |
+          cd frontend && npm ci
+
+      - name: ESLint
+        run: |
+          cd frontend && npx eslint src/ --ext .ts,.tsx
+
+  # ============================================================
+  # BACKEND TESTS
+  # ============================================================
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest httpx pytest-asyncio
+
+      - name: Test database init
+        run: |
+          python -c "from backend.database import init_db, engine; init_db(); print('DB OK')"
+
+      - name: Test models import
+        run: |
+          python -c "
+from backend.models import user, product, order, cart, payment
+from backend.models import multi_vendor, multi_tenant, social, ai_engine, dropship
+from backend.integrations.base import BaseMarketplaceClient
+from backend.aggregator import OrderAggregator, ProductAggregator
+from backend.sync import SyncScheduler
+from backend.seo import MetaGenerator
+from backend.automation import DropshipAutomation
+print('All models and modules imported OK')
+"
+
+      - name: Test integrations
+        run: |
+          python -c "
+from backend.integrations.shopee import ShopeeClient
+from backend.integrations.lazada import LazadaClient
+from backend.integrations.tiktok import TikTokClient
+from backend.integrations.facebook import FacebookClient
+from backend.integrations.sendo import SendoClient
+print('All marketplace clients import OK')
+"
+
+  # ============================================================
+  # FRONTEND BUILD
+  # ============================================================
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        run: |
+          cd frontend && npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend && npm run build
+        env:
+          VITE_API_URL: /api
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # ============================================================
+  # DEPLOY TO VERCEL (production only)
+  # ============================================================
+  deploy-vercel:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: [lint, backend-test, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://omnishop.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel (API)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+
+      - name: Set environment variables
+        run: |
+          echo "Setting Supabase environment variables..."
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+  # ============================================================
+  # SUPABASE SCHEMA DEPLOY
+  # ============================================================
+  deploy-supabase:
+    name: Deploy Supabase Schema
+    runs-on: ubuntu-latest
+    needs: [backend-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Apply Supabase migration
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          pip install psycopg2-binary
+          python -c "
+import psycopg2, os
+conn = psycopg2.connect(os.environ['SUPABASE_DATABASE_URL'])
+cur = conn.cursor()
+with open('supabase/migrations/001_init_schema.sql', 'r') as f:
+    sql = f.read()
+cur.execute(sql)
+conn.commit()
+cur.close()
+conn.close()
+print('Supabase schema applied successfully')
+"
+
+  # ============================================================
+  # DEPLOY FRONTEND TO CLOUDFLARE PAGES
+  # ============================================================
+  deploy-cloudflare:
+    name: Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    needs: [frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://omnishop.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: omnishop
+          directory: frontend/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
