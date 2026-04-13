@@ -129,7 +129,7 @@ export default function ProductPage() {
             {reviews.map(r => (
               <div key={r.id} className="border-b pb-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="flex"><{[1,2,3,4,5].map(s => <Star key={s} className={`w-3 h-3 ${s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />)}</div>
+                  <div className="flex">{[1,2,3,4,5].map(s => <Star key={s} className={`w-3 h-3 ${s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />)}</div>
                   <span className="font-medium text-sm">{r.user_name || 'Anonymous'}</span>
                   <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
                 </div>
