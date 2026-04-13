@@ -1,6 +1,6 @@
 -- ============================================================
 -- OMNICHANNEL E-COMMERCE - Supabase PostgreSQL Schema
--- Project: jogjbuoucnbzuoatgwgd
+-- Project: peznevsvvmtdhafursvd
 -- ============================================================
 
 -- ============================================================

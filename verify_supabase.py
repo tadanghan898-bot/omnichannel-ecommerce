@@ -3,7 +3,7 @@ import psycopg2, os, urllib.parse
 
 db_pass = os.environ.get("DB_PASS", "")
 encoded_pass = urllib.parse.quote(db_pass, safe='')
-url = f"postgresql://postgres:{encoded_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:6543/postgres?sslmode=require"
+url = f"postgresql://postgres:{encoded_pass}@db.peznevsvvmtdhafursvd.supabase.co:6543/postgres?sslmode=require"
 
 conn = psycopg2.connect(url)
 cur = conn.cursor()

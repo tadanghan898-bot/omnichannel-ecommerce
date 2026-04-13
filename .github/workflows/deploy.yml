@@ -39,7 +39,7 @@ jobs:
 
       - name: Apply Supabase schema
         env:
-          SUPABASE_DATABASE_URL: postgresql://postgres:${{ github.event.inputs.db_password || 'Vianhemoi123@' }}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres
+          SUPABASE_DATABASE_URL: postgresql://postgres:${{ github.event.inputs.db_password || 'Vianhemoi123@' }}@db.peznevsvvmtdhafursvd.supabase.co:5432/postgres
         run: |
           python3 << 'EOF'
 import psycopg2, os
@@ -84,7 +84,7 @@ EOF
 
       - name: Verify tables
         env:
-          SUPABASE_DATABASE_URL: postgresql://postgres:${{ github.event.inputs.db_password || 'Vianhemoi123@' }}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres
+          SUPABASE_DATABASE_URL: postgresql://postgres:${{ github.event.inputs.db_password || 'Vianhemoi123@' }}@db.peznevsvvmtdhafursvd.supabase.co:5432/postgres
         run: |
           python3 -c "
 import psycopg2, os

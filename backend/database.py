@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
 
+    # Supabase Keys
+    SUPABASE_URL: str = "https://peznevsvvmtdhafursvd.supabase.co"
+    SUPABASE_ANON_KEY: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlem5ldnN2dm10ZGhhZnVyc3ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTgyNjEsImV4cCI6MjA5MTYzNDI2MX0.H9Hfu80epDg3iijutxBg6ccmBRPl-ubKa84ZYkuAzl0"
+    SUPABASE_SERVICE_ROLE_KEY: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlem5ldnN2dm10ZGhhZnVyc3ZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA1ODI2MSwiZXhwIjoyMDkxNjM0MjYxfQ.z_CplQrGTPqS9ct9yWgP3h2scyaSuKAtAwlwDjmMOw0"
+
     class Config:
         env_file = ".env"
         extra = "allow"
@@ -48,7 +53,7 @@ if not _database_url or _database_url == settings.DATABASE_URL:
     if _db_pass:
         import urllib.parse
         _encoded = urllib.parse.quote(_db_pass, safe='')
-        _database_url = f"postgresql://postgres:{_encoded}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
+        _database_url = f"postgresql://postgres:{_encoded}@db.peznevsvvmtdhafursvd.supabase.co:5432/postgres"
 
 # Engine configuration
 if _database_url.startswith("sqlite"):

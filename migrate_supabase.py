@@ -32,7 +32,7 @@ def run_migration():
             results = old_getaddrinfo(*args)
             return [(af, *rest) for af, *rest in results if af == socket.AF_INET]
         socket.getaddrinfo = ipv4_getaddrinfo
-        DATABASE_URL = f"postgresql://postgres:{encoded_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:6543/postgres?sslmode=require"
+        DATABASE_URL = f"postgresql://postgres:{encoded_pass}@db.peznevsvvmtdhafursvd.supabase.co:6543/postgres?sslmode=require"
 
     if not DATABASE_URL:
         print("ERROR: SUPABASE_DATABASE_URL or DB_PASS environment variable not set")
@@ -42,7 +42,7 @@ def run_migration():
     import psycopg2
 
     print("Connecting to Supabase...")
-    print(f"URL: db.jogjbuoucnbzuoatgwgd.supabase.co:5432")
+    print(f"URL: db.peznevsvvmtdhafursvd.supabase.co:5432")
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = True
     cur = conn.cursor()

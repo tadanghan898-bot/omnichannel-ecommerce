@@ -11,7 +11,7 @@ import json
 import urllib.request
 import urllib.parse
 
-SUPABASE_REF = "jogjbuoucnbzuoatgwgd"
+SUPABASE_REF = "peznevsvvmtdhafursvd"
 ACCESS_TOKEN = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
 
 
