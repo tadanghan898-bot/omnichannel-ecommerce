@@ -11,23 +11,71 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Supabase CLI v2
-        run: |
-          curl -fsSL https://github.com/supabase/cli/releases/download/v2.84.2/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
-          tar -xzf /tmp/supabase.tar.gz -C /usr/local/bin
-          supabase --version
-
-      - name: Apply migrations via direct DB connection
+      - name: Apply schema migration
         env:
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          python3 -c "
-import urllib.parse
-pwd = '${{ secrets.SUPABASE_DB_PASSWORD }}'
-encoded = urllib.parse.quote(pwd, safe='')
-db_url = f'postgresql://postgres:{encoded}@db.peznevsvvmtdhafursvd.supabase.co:5432/postgres'
-with open('/tmp/db_url.txt', 'w') as f:
-    f.write(db_url)
-print('DB URL ready')
-"
-          supabase db push --db-url "$(cat /tmp/db_url.txt)" --project-ref peznevsvvmtdhafursvd --yes
+          TOKEN="$SUPABASE_ACCESS_TOKEN"
+          PROJECT="peznevsvvmtdhafursvd"
+          python3 << 'PYEOF'
+import subprocess, json
+
+token = "${{ secrets.SUPABASE_ACCESS_TOKEN }}"
+project = "peznevsvvmtdhafursvd"
+
+def sql(q):
+    r = subprocess.run([
+        "curl", "-s", "-X", "POST",
+        f"https://api.supabase.com/v1/projects/{project}/database/query",
+        "-H", f"Authorization: Bearer {token}",
+        "-H", "Content-Type: application/json",
+        "-H", f"apikey: {token}",
+        "-d", json.dumps({"query": q})
+    ], capture_output=True, text=True, timeout=30)
+    return r.returncode == 0
+
+# Read and execute schema
+with open("supabase/migrations/001_init_schema.sql") as f:
+    content = f.read()
+
+ok = fail = 0
+for stmt in content.split(";"):
+    s = stmt.strip()
+    if not s or s.startswith("--"):
+        continue
+    if sql(s):
+        ok += 1
+    else:
+        fail += 1
+    if (ok + fail) % 20 == 0:
+        print(f"Progress: {ok} ok, {fail} fail")
+
+print(f"Schema migration: {ok} ok, {fail} failed")
+
+# Seed data
+with open("supabase/migrations/002_seed_data.sql") as f:
+    content = f.read()
+
+ok = fail = 0
+for stmt in content.split(";"):
+    s = stmt.strip()
+    if not s or s.startswith("--") or not s.startswith("INSERT"):
+        continue
+    if sql(s):
+        ok += 1
+    else:
+        fail += 1
+
+print(f"Seed data: {ok} ok, {fail} failed")
+
+# Verify
+r = subprocess.run([
+    "curl", "-s", "-X", "POST",
+    f"https://api.supabase.com/v1/projects/{project}/database/query",
+    "-H", f"Authorization: Bearer {token}",
+    "-H", "Content-Type: application/json",
+    "-H", f"apikey: {token}",
+    "-d", json.dumps({"query": "SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = 'public'"})
+], capture_output=True, text=True, timeout=30)
+print(f"Result: {r.stdout}")
+PYEOF
