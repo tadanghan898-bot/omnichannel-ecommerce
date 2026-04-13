@@ -42,6 +42,11 @@ settings = Settings()
 
 # Database URL override from environment
 _database_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
+# Support DB_PASS env var for Supabase (GitHub Actions / Vercel)
+if not _database_url or _database_url == settings.DATABASE_URL:
+    _db_pass = os.getenv("SUPABASE_DB_PASSWORD", "") or os.getenv("DB_PASS", "")
+    if _db_pass:
+        _database_url = f"postgresql://postgres:{_db_pass}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
 
 # Engine configuration
 if _database_url.startswith("sqlite"):

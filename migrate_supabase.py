@@ -14,17 +14,25 @@ import sys
 
 DATABASE_URL = os.environ.get("SUPABASE_DATABASE_URL", "")
 SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+DB_PASS = os.environ.get("DB_PASS", "")
 
 
 def run_migration():
+    global DATABASE_URL
+
+    # Support DB_PASS env var (GitHub Actions)
+    if not DATABASE_URL and DB_PASS:
+        DATABASE_URL = f"postgresql://postgres:{DB_PASS}@db.jogjbuoucnbzuoatgwgd.supabase.co:5432/postgres"
+
     if not DATABASE_URL:
-        print("ERROR: SUPABASE_DATABASE_URL environment variable not set")
+        print("ERROR: SUPABASE_DATABASE_URL or DB_PASS environment variable not set")
         print("Get it from: Supabase Dashboard > Settings > Database")
         sys.exit(1)
 
     import psycopg2
 
     print("Connecting to Supabase...")
+    print(f"URL: db.jogjbuoucnbzuoatgwgd.supabase.co:5432")
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = True
     cur = conn.cursor()
