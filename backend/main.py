@@ -122,5 +122,29 @@ if PLATFORM.get("dropship"):
     app.include_router(dropship_router)
     print("[MODULE] Dropshipping enabled")
 
+# SEO router (always available)
+try:
+    from backend.seo.router import router as seo_router
+    app.include_router(seo_router)
+    print("[MODULE] SEO module enabled")
+except ImportError:
+    pass
+
+# Marketplace integrations (always available)
+try:
+    from backend.integrations.router import register_integration_routes
+    register_integration_routes(app)
+    print("[MODULE] Marketplace integrations enabled (Shopee, Lazada, TikTok, Facebook, Sendo)")
+except ImportError as e:
+    print(f"[MODULE] Marketplace integrations not available: {e}")
+
+# Unified marketplace aggregator
+try:
+    from backend.routers.aggregator import router as aggregator_router
+    app.include_router(aggregator_router)
+    print("[MODULE] Unified marketplace aggregator enabled")
+except ImportError:
+    pass
+
 
 # Run with: uvicorn backend.main:app --reload
