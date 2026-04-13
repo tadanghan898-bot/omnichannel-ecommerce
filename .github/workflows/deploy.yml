@@ -1,4 +1,4 @@
-name: Deploy to Vercel + Supabase
+name: Deploy to Vercel
 
 on:
   push:
@@ -6,189 +6,14 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      skip_vercel:
-        description: 'Skip Vercel deploy'
-        type: boolean
-        default: false
-      skip_cloudflare:
-        description: 'Skip Cloudflare deploy'
-        type: boolean
-        default: false
-      db_password:
-        description: 'Supabase database password (for migration)'
-        type: string
 
 jobs:
-  # ============================================================
-  # SUPABASE MIGRATION (run on every push + manual)
-  # ============================================================
-  supabase-migrate:
-    name: Supabase Migration
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install psycopg2
-        run: pip install psycopg2-binary
-
-      - name: Apply Supabase schema
-        env:
-          SUPABASE_DATABASE_URL: postgresql://postgres:${{ github.event.inputs.db_password || 'Vianhemoi123@' }}@db.peznevsvvmtdhafursvd.supabase.co:5432/postgres
-        run: |
-          python3 << 'EOF'
-import psycopg2, os
-
-try:
-    conn = psycopg2.connect(os.environ['SUPABASE_DATABASE_URL'])
-    conn.autocommit = True
-    cur = conn.cursor()
-
-    with open('supabase/migrations/001_init_schema.sql', 'r', encoding='utf-8') as f:
-        sql = f.read()
-
-    ok = fail = 0
-    for stmt in [s.strip() for s in sql.split(';') if s.strip()]:
-        if stmt.startswith('CREATE') or stmt.startswith('ALTER') or stmt.startswith('INSERT') or 'TRIGGER' in stmt:
-            try:
-                cur.execute(stmt)
-                ok += 1
-            except Exception as e:
-                if 'already exists' not in str(e).lower() and 'duplicate' not in str(e).lower():
-                    print(f'WARN: {str(e)[:80]}')
-                    fail += 1
-    print(f'Schema: {ok} OK, {fail} warnings')
-
-    with open('supabase/migrations/002_seed_data.sql', 'r', encoding='utf-8') as f:
-        for stmt in [s.strip() for s in f.read().split(';') if s.strip()]:
-            if stmt.startswith('INSERT'):
-                try:
-                    cur.execute(stmt)
-                except Exception as e:
-                    if 'duplicate' not in str(e).lower():
-                        print(f'Seed: {str(e)[:80]}')
-
-    print('Seed OK')
-    cur.close()
-    conn.close()
-    print('SUPABASE MIGRATION SUCCESS')
-except Exception as e:
-    print(f'Migration failed: {e}')
-    import sys; sys.exit(1)
-EOF
-
-      - name: Verify tables
-        env:
-          SUPABASE_DATABASE_URL: postgresql://postgres:${{ github.event.inputs.db_password || 'Vianhemoi123@' }}@db.peznevsvvmtdhafursvd.supabase.co:5432/postgres
-        run: |
-          python3 -c "
-import psycopg2, os
-conn = psycopg2.connect(os.environ['SUPABASE_DATABASE_URL'])
-cur = conn.cursor()
-cur.execute(\"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'\")
-print(f'Tables: {cur.fetchone()[0]}')
-cur.close()
-conn.close()
-"
-
-  # ============================================================
-  # LINT & TYPE CHECK
-  # ============================================================
-  lint:
-    needs: [supabase-migrate]
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          pip install ruff black mypy
-
-      - name: Run ruff
-        run: |
-          ruff check backend/ --ignore E501,F401
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install frontend deps
-        run: |
-          cd frontend && npm ci
-
-      - name: ESLint
-        run: |
-          cd frontend && npx eslint src/ --ext .ts,.tsx
-
-  # ============================================================
-  # BACKEND TESTS
-  # ============================================================
-  backend-test:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pytest httpx pytest-asyncio
-
-      - name: Test database init
-        run: |
-          python -c "from backend.database import init_db, engine; init_db(); print('DB OK')"
-
-      - name: Test models import
-        run: |
-          python -c "
-from backend.models import user, product, order, cart, payment
-from backend.models import multi_vendor, multi_tenant, social, ai_engine, dropship
-from backend.integrations.base import BaseMarketplaceClient
-from backend.aggregator import OrderAggregator, ProductAggregator
-from backend.sync import SyncScheduler
-from backend.seo import MetaGenerator
-from backend.automation import DropshipAutomation
-print('All models and modules imported OK')
-"
-
-      - name: Test integrations
-        run: |
-          python -c "
-from backend.integrations.shopee import ShopeeClient
-from backend.integrations.lazada import LazadaClient
-from backend.integrations.tiktok import TikTokClient
-from backend.integrations.facebook import FacebookClient
-from backend.integrations.sendo import SendoClient
-print('All marketplace clients import OK')
-"
-
-  # ============================================================
-  # FRONTEND BUILD
-  # ============================================================
-  frontend-build:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -204,103 +29,21 @@ print('All marketplace clients import OK')
           cd frontend && npm run build
         env:
           VITE_API_URL: /api
+          VITE_SUPABASE_URL: https://peznevsvvmtdhafursvd.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlem5ldnN2dm10ZGhhZnVyc3ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTgyNjEsImV4cCI6MjA5MTYzNDI2MX0.H9Hfu80epDg3iijutxBg6ccmBRPl-ubKa84ZYkuAzl0
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-          retention-days: 1
-
-  # ============================================================
-  # DEPLOY TO VERCEL (production only)
-  # ============================================================
-  deploy-vercel:
-    name: Deploy to Vercel
-    runs-on: ubuntu-latest
-    needs: [lint, backend-test, frontend-build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: production
-      url: https://omnishop.vercel.app
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Vercel (API)
+      - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./
-
-      - name: Set environment variables
-        run: |
-          echo "Setting Supabase environment variables..."
-        env:
-          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-          SECRET_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-  # ============================================================
-  # SUPABASE SCHEMA DEPLOY
-  # ============================================================
-  deploy-supabase:
-    name: Deploy Supabase Schema
-    runs-on: ubuntu-latest
-    needs: [backend-test]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Apply Supabase migration
+          working-directory: .
+          vercel-args: --prod
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          pip install psycopg2-binary
-          python -c "
-import psycopg2, os
-conn = psycopg2.connect(os.environ['SUPABASE_DATABASE_URL'])
-cur = conn.cursor()
-with open('supabase/migrations/001_init_schema.sql', 'r') as f:
-    sql = f.read()
-cur.execute(sql)
-conn.commit()
-cur.close()
-conn.close()
-print('Supabase schema applied successfully')
-"
-
-  # ============================================================
-  # DEPLOY FRONTEND TO CLOUDFLARE PAGES
-  # ============================================================
-  deploy-cloudflare:
-    name: Deploy to Cloudflare Pages
-    runs-on: ubuntu-latest
-    needs: [frontend-build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: production
-      url: https://omnishop.pages.dev
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: omnishop
-          directory: frontend/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_URL: https://peznevsvvmtdhafursvd.supabase.co
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlem5ldnN2dm10ZGhhZnVyc3ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTgyNjEsImV4cCI6MjA5MTYzNDI2MX0.H9Hfu80epDg3iijutxBg6ccmBRPl-ubKa84ZYkuAzl0
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          SECRET_KEY: supersecret-key-change-in-production
